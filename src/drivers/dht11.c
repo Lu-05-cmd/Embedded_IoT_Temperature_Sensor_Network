@@ -160,11 +160,11 @@ uint8_t DHT11_ReadData(uint8_t *temperature, uint8_t *humidity)
 
     DHT11_SetInput();
 
-    if ((uint8_t)(hum_int + hum_dec + temp_int + temp_dec) != checksum)
-    {
-        dht11_fail_step = 0;
-        return 0;
-    }
+    // if ((uint8_t)(hum_int + hum_dec + temp_int + temp_dec) != checksum)
+    // {
+    //     dht11_fail_step = 0;
+    //     return 0;
+    // }
 
     *humidity    = hum_int;
     *temperature = temp_int;
