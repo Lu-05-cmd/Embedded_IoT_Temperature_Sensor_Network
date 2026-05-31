@@ -21,7 +21,6 @@ int main(void)
     {
         extern uint8_t dht11_fail_step;
 
-        // trong while(1):
         if (!DHT11_ReadData(&temperature, &humidity))
         {
             printf("DHT11 Error, step = %d\r\n", dht11_fail_step);
@@ -45,6 +44,14 @@ int main(void)
         
         printf("Temp = %d C, Hum = %d %%\r\n", temperature, humidity);
      
+        if (DHT11_Read(&temperature, &humidity))
+        {
+            if (temperature > 35)
+                Buzzer_On();
+            else
+                Buzzer_Off();
+        }
+        delay_ms(1000);
         SysTick_DelayMs(2000);
     }
 }
