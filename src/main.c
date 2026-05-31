@@ -7,6 +7,9 @@
 #include "../include/drivers/dht11.h"
 #include "../include/drivers/rgb.h"
 #include "../include/drivers/buzzer.h"
+#include "../include/drivers/sensor.h"
+#include "../include/drivers/usart.h"
+
 
 void RCC_Config(void);
 
@@ -49,6 +52,8 @@ int main(void)
                 Buzzer_On();
             else
                 Buzzer_Off();
+            // send data to esp32
+            Sensor_SendData(temp_dbg, hum_dbg);
         }
         else
         {
