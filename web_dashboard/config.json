@@ -1,4 +1,8 @@
 {
   "PORT": 3000,
-  "MAX_HISTORY_LEN": 100
+  "MAX_HISTORY_LEN": 100,
+  "MQTT_BROKER": "mqtt://broker.hivemq.com",
+  "MQTT_USERNAME": "",
+  "MQTT_PASSWORD": "",
+  "MQTT_TOPIC": "embedded_iot/temp_sensor/8c377539"
 }

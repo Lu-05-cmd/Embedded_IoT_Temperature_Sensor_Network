@@ -1,11 +1,12 @@
 #include <WiFi.h>
-#include <HTTPClient.h>
 #include <ArduinoJson.h>
 
 #include "config.h"
 
-// Chuỗi API endpoint
-String server_url;
+// Liên kết code C-style của MQTT ESP-IDF vào chương trình Arduino C++
+extern "C" {
+#include "mqtt.h"
+}
 
 // Cấu hình phần cứng ESP32
 #define STM32_RX_PIN 16 // Kết nối tới chân PA9 (TX) của STM32
@@ -17,7 +18,7 @@ void setup() {
     
     // Khởi chạy UART2 nhận dữ liệu từ STM32
     Serial2.begin(STM32_BAUDRATE, SERIAL_8N1, STM32_RX_PIN, STM32_TX_PIN);
-    Serial.println("ESP32 Local Gateway đã khởi động.");
+    Serial.println("ESP32 Local Gateway (ESP-IDF MQTT Mode) đã khởi động.");
 
     // Kết nối Wi-Fi
     WiFi.begin(ssid, password);
@@ -30,52 +31,8 @@ void setup() {
     Serial.print("Địa chỉ IP ESP32: ");
     Serial.println(WiFi.localIP());
 
-    // Cấu hình URL server nhận dữ liệu
-    server_url = "http://" + String(server_ip) + ":" + String(server_port) + "/api/telemetry";
-    Serial.print("Server URL: ");
-    Serial.println(server_url);
-}
-
-void sendToLocalServer(int temp, int humi, int dht, int lcd, int rgb, int buzzer) {
-    if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("Lỗi: Mất kết nối Wi-Fi!");
-        return;
-    }
-
-    WiFiClient client;
-    HTTPClient http;
-    http.begin(client, server_url);
-    
-    http.addHeader("Content-Type", "application/json");
-
-    // Tạo payload JSON gửi lên server local
-    StaticJsonDocument<256> doc;
-    doc["temp"] = temp;
-    doc["humi"] = humi;
-    doc["dht"] = dht;
-    doc["lcd"] = lcd;
-    doc["rgb"] = rgb;
-    doc["buzzer"] = buzzer;
-
-    String requestBody;
-    serializeJson(doc, requestBody);
-    
-    Serial.println("Đang gửi dữ liệu lên Local Server...");
-    Serial.println(requestBody);
-
-    int httpResponseCode = http.POST(requestBody);
-
-    if (httpResponseCode > 0) {
-        Serial.print("Gửi thành công, Server phản hồi code: ");
-        Serial.println(httpResponseCode);
-        String response = http.getString();
-        Serial.println(response);
-    } else {
-        Serial.print("Lỗi khi gửi POST: ");
-        Serial.println(http.errorToString(httpResponseCode).c_str());
-    }
-
-    http.end();
+    // Khởi động tiến trình MQTT Client của ESP-IDF
+    mqtt_app_start();
 }
 
 void loop() {
@@ -88,22 +45,20 @@ void loop() {
             Serial.print("Nhận từ STM32: ");
             Serial.println(jsonStr);
 
-            // Phân tích chuỗi JSON nhận được từ STM32
+            // Kiểm tra tính hợp lệ của chuỗi JSON trước khi gửi lên MQTT
             StaticJsonDocument<256> doc;
             DeserializationError error = deserializeJson(doc, jsonStr);
 
             if (!error) {
-                int temp = doc["temp"];
-                int humi = doc["humi"];
-                int dht = doc["dht"];
-                int lcd = doc["lcd"];
-                int rgb = doc["rgb"];
-                int buzzer = doc["buzzer"];
-
-                // Gửi lên Local Server
-                sendToLocalServer(temp, humi, dht, lcd, rgb, buzzer);
+                // Kiểm tra xem MQTT đã kết nối chưa
+                if (mqtt_is_connected()) {
+                    Serial.println("Đang chuyển tiếp dữ liệu lên MQTT Broker...");
+                    mqtt_publish_sensor(jsonStr.c_str());
+                } else {
+                    Serial.println("Cảnh báo: MQTT chưa sẵn sàng kết nối!");
+                }
             } else {
-                Serial.print("Lỗi giải mã JSON: ");
+                Serial.print("Lỗi định dạng JSON nhận được: ");
                 Serial.println(error.c_str());
             }
         }

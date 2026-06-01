@@ -3,6 +3,14 @@ const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
 const os = require('os');
+const mqtt = require('mqtt');
+
+// Load tệp cấu hình config.json
+const config = require('./config.json');
+const PORT = config.PORT || 3000;
+const MAX_HISTORY_LEN = config.MAX_HISTORY_LEN || 100;
+const MQTT_BROKER = config.MQTT_BROKER || 'mqtt://broker.hivemq.com';
+const MQTT_TOPIC = config.MQTT_TOPIC || 'embedded_iot/temp_sensor/8c377539';
 
 // Hàm tự động lấy địa chỉ IP của máy tính trong mạng LAN
 function getLocalIP() {
@@ -22,7 +30,66 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-const PORT = process.env.PORT || 3000;
+// Thiết lập cấu hình kết nối MQTT (Hỗ trợ Username/Password cho HiveMQ Cloud)
+const mqttOptions = {};
+if (config.MQTT_USERNAME) {
+    mqttOptions.username = config.MQTT_USERNAME;
+}
+if (config.MQTT_PASSWORD) {
+    mqttOptions.password = config.MQTT_PASSWORD;
+}
+
+const mqttClient = mqtt.connect(MQTT_BROKER, mqttOptions);
+
+mqttClient.on('connect', () => {
+    console.log(`[MQTT Client] Kết nối thành công tới Broker: ${MQTT_BROKER}`);
+    mqttClient.subscribe(MQTT_TOPIC, (err) => {
+        if (!err) {
+            console.log(`[MQTT Client] Đã subscribe thành công topic: ${MQTT_TOPIC}`);
+        } else {
+            console.error('[MQTT Client] Lỗi khi subscribe topic:', err);
+        }
+    });
+});
+
+mqttClient.on('message', (topic, message) => {
+    if (topic === MQTT_TOPIC) {
+        try {
+            const payload = JSON.parse(message.toString());
+            const { temp, humi, dht, lcd, rgb, buzzer } = payload;
+            
+            if (temp === undefined || humi === undefined) return;
+
+            const dataPoint = {
+                temp: Number(temp),
+                humi: Number(humi),
+                dht: dht !== undefined ? Number(dht) : 1,
+                lcd: lcd !== undefined ? Number(lcd) : 1,
+                rgb: rgb !== undefined ? Number(rgb) : 1,
+                buzzer: buzzer !== undefined ? Number(buzzer) : 0,
+                timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            };
+
+            // Thêm vào lịch sử
+            telemetryHistory.push(dataPoint);
+            if (telemetryHistory.length > MAX_HISTORY_LEN) {
+                telemetryHistory.shift();
+            }
+
+            // Phát tới các WebSocket client
+            const msg = JSON.stringify({ type: 'NEW_DATA', data: dataPoint });
+            wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(msg);
+                }
+            });
+
+            console.log(`[MQTT -> Server] Nhận dữ liệu: Temp=${temp}°C, Humi=${humi}%, Buzzer=${buzzer}`);
+        } catch (e) {
+            console.error('[MQTT Client] Lỗi khi xử lý tin nhắn:', e.message);
+        }
+    }
+});
 
 // Middleware
 app.use(express.json());
@@ -30,7 +97,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Mảng lưu trữ tối đa 100 bản ghi đo gần nhất để hiển thị biểu đồ lịch sử lúc load trang
 let telemetryHistory = [];
-const MAX_HISTORY_LEN = 100;
 
 // API nhận dữ liệu từ ESP32 gửi lên
 app.post('/api/telemetry', (req, res) => {
