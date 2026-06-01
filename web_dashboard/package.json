@@ -1,0 +1,16 @@
+{
+  "name": "embedded-iot-dashboard",
+  "version": "1.0.0",
+  "description": "Custom local web dashboard for STM32 + ESP32 IoT temperature sensor network",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "simulate": "node test_simulator.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.17.0"
+  },
+  "author": "Antigravity",
+  "license": "ISC"
+}

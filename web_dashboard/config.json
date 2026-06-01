@@ -1,0 +1,4 @@
+{
+  "PORT": 3000,
+  "MAX_HISTORY_LEN": 100
+}
