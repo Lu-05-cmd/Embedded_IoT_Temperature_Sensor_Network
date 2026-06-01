@@ -8,13 +8,13 @@ function initChart() {
     
     // Tạo gradient màu nền cho biểu đồ nhiệt độ
     const tempGradient = ctx.createLinearGradient(0, 0, 0, 350);
-    tempGradient.addColorStop(0, 'rgba(255, 107, 107, 0.25)');
-    tempGradient.addColorStop(1, 'rgba(255, 107, 107, 0.0)');
+    tempGradient.addColorStop(0, 'rgba(37, 99, 235, 0.2)');
+    tempGradient.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
 
     // Tạo gradient màu nền cho biểu đồ độ ẩm
     const humiGradient = ctx.createLinearGradient(0, 0, 0, 350);
-    humiGradient.addColorStop(0, 'rgba(56, 189, 248, 0.25)');
-    humiGradient.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
+    humiGradient.addColorStop(0, 'rgba(14, 165, 233, 0.2)');
+    humiGradient.addColorStop(1, 'rgba(14, 165, 233, 0.0)');
 
     chart = new Chart(ctx, {
         type: 'line',
@@ -24,7 +24,7 @@ function initChart() {
                 {
                     label: 'Nhiệt độ (°C)',
                     data: [],
-                    borderColor: '#ff6b6b',
+                    borderColor: '#2563eb',
                     backgroundColor: tempGradient,
                     borderWidth: 3,
                     fill: true,
@@ -36,7 +36,7 @@ function initChart() {
                 {
                     label: 'Độ ẩm (%)',
                     data: [],
-                    borderColor: '#38bdf8',
+                    borderColor: '#0ea5e9',
                     backgroundColor: humiGradient,
                     borderWidth: 3,
                     fill: true,
@@ -59,7 +59,7 @@ function initChart() {
                     display: true,
                     position: 'top',
                     labels: {
-                        color: '#94a3b8',
+                        color: '#64748b',
                         font: {
                             family: 'Plus Jakarta Sans',
                             size: 12,
@@ -69,10 +69,10 @@ function initChart() {
                     }
                 },
                 tooltip: {
-                    backgroundColor: '#1e293b',
-                    titleColor: '#f8fafc',
-                    bodyColor: '#f8fafc',
-                    borderColor: 'rgba(255,255,255,0.1)',
+                    backgroundColor: '#ffffff',
+                    titleColor: '#0f172a',
+                    bodyColor: '#334155',
+                    borderColor: 'rgba(148, 163, 184, 0.2)',
                     borderWidth: 1,
                     padding: 12,
                     boxPadding: 6,
@@ -88,7 +88,7 @@ function initChart() {
             scales: {
                 x: {
                     grid: {
-                        color: 'rgba(255, 255, 255, 0.03)'
+                        color: 'rgba(148, 163, 184, 0.08)'
                     },
                     ticks: {
                         color: '#64748b',
@@ -104,10 +104,10 @@ function initChart() {
                     min: 0,
                     max: 80,
                     grid: {
-                        color: 'rgba(255, 255, 255, 0.05)'
+                        color: 'rgba(148, 163, 184, 0.08)'
                     },
                     ticks: {
-                        color: '#ff6b6b',
+                        color: '#2563eb',
                         font: {
                             family: 'Plus Jakarta Sans',
                             weight: '600'
@@ -125,7 +125,7 @@ function initChart() {
                         drawOnChartArea: false // Ẩn đường lưới để tránh rối mắt
                     },
                     ticks: {
-                        color: '#38bdf8',
+                        color: '#0ea5e9',
                         font: {
                             family: 'Plus Jakarta Sans',
                             weight: '600'
