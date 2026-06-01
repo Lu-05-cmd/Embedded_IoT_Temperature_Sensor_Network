@@ -7,7 +7,12 @@
 #define DHT11_PORT  GPIOB
 #define DHT11_PIN   (1UL << 12)
 
-uint8_t dht11_fail_step = 0;
+volatile uint8_t dht11_fail_step = 0;
+volatile uint8_t dbg_hum_int;
+volatile uint8_t dbg_hum_dec;
+volatile uint8_t dbg_temp_int;
+volatile uint8_t dbg_temp_dec;
+volatile uint8_t dbg_checksum;
 
 /* =========================================================
  * GPIO
@@ -117,7 +122,7 @@ uint8_t DHT11_ReadBit(void)
 
     // 3. phân loại bit
     // threshold ~40us
-    return (count > 25) ? 1 : 0;
+    return (count > 6) ? 1 : 0;
 }
 
 /* =========================================================
@@ -158,13 +163,18 @@ uint8_t DHT11_ReadData(uint8_t *temperature, uint8_t *humidity)
     temp_dec = DHT11_ReadByte();
     checksum = DHT11_ReadByte();
 
+    dbg_hum_int  = hum_int;
+    dbg_hum_dec  = hum_dec;
+    dbg_temp_int = temp_int;
+    dbg_temp_dec = temp_dec;
+    dbg_checksum = checksum;
     DHT11_SetInput();
 
-    // if ((uint8_t)(hum_int + hum_dec + temp_int + temp_dec) != checksum)
-    // {
-    //     dht11_fail_step = 0;
-    //     return 0;
-    // }
+    if ((uint8_t)(hum_int + hum_dec + temp_int + temp_dec) != checksum)
+    {
+        dht11_fail_step = 4;
+        return 0;
+    }
 
     *humidity    = hum_int;
     *temperature = temp_int;
