@@ -20,9 +20,10 @@ int main(void)
     uint8_t temperature = 0;
     EnvStatus_t env_status = ENV_STATUS_NORMAL;
     uint32_t last_sensor_read_ms = 0;
+    uint8_t lcd_page = 0;
 
     uint8_t temp_offset = 10;
-    uint8_t hum_offset  = 67;
+    uint8_t hum_offset = 67;
 
     RCC_Config();
 
@@ -31,13 +32,12 @@ int main(void)
 
     DHT11_Init();
     RGB_Init();
-    Buzzer_Init();   // nếu có
+    Buzzer_Init(); // nếu có
     USART1_Init(112500);
     LCD_Init();
     TemperatureManager_Init();
     SystemStartupSelfTest();
 
-    
     while (1)
     {
         extern uint8_t dht11_fail_step;
@@ -47,17 +47,25 @@ int main(void)
         uint8_t rgb_ok = 1;
         uint8_t buzzer_ok = 1;
 
-        if (env_status == ENV_STATUS_SENSOR_ERROR) {
+        if (env_status == ENV_STATUS_SENSOR_ERROR)
+        {
             Buzzer_UpdateAlert(BUZZER_ALERT_ERROR, now_ms);
-        } else if (env_status == ENV_STATUS_DANGER) {
+        }
+        else if (env_status == ENV_STATUS_DANGER)
+        {
             Buzzer_UpdateAlert(BUZZER_ALERT_FAST, now_ms);
-        } else if (env_status == ENV_STATUS_WARNING) {
+        }
+        else if (env_status == ENV_STATUS_WARNING)
+        {
             Buzzer_UpdateAlert(BUZZER_ALERT_SLOW, now_ms);
-        } else {
+        }
+        else
+        {
             Buzzer_UpdateAlert(BUZZER_ALERT_OFF, now_ms);
         }
 
-        if ((now_ms - last_sensor_read_ms) < 1000) {
+        if ((now_ms - last_sensor_read_ms) < 1000)
+        {
             SysTick_DelayMs(10);
             continue;
         }
@@ -68,28 +76,45 @@ int main(void)
             dht_ok = 1;
             /* ===== APPLY OFFSET DEBUG ===== */
             int temp_dbg = (int)temperature + temp_offset;
-            int hum_dbg  = (int)humidity - hum_offset;
+            int hum_dbg = (int)humidity - hum_offset;
+            TemperatureStats_t stats;
 
             char line[17];
             TemperatureManager_Update(temp_dbg, hum_dbg);
             env_status = TemperatureManager_EvaluateStatus(temp_dbg, hum_dbg);
+            stats = TemperatureManager_GetStats();
 
             LCD_Clear();
 
-            LCD_SetCursor(0, 0);
-            snprintf(line, sizeof(line), "T:%2dC H:%2d%%", temp_dbg, hum_dbg);
-            LCD_SendString(line);
+            if (lcd_page < 4)
+            {
+                LCD_SetCursor(0, 0);
+                snprintf(line, sizeof(line), "T:%2dC H:%2d%%", temp_dbg, hum_dbg);
+                LCD_SendString(line);
 
-            LCD_SetCursor(1, 0);
-            snprintf(line, sizeof(line), "%s", TemperatureManager_GetStatusText(env_status));
-            LCD_SendString(line);
+                LCD_SetCursor(1, 0);
+                snprintf(line, sizeof(line), "%s", TemperatureManager_GetStatusText(env_status));
+                LCD_SendString(line);
+            }
+            else
+            {
+                LCD_SetCursor(0, 0);
+                snprintf(line, sizeof(line), "Tmin:%2d Tmax:%2d", stats.temp_min, stats.temp_max);
+                LCD_SendString(line);
+
+                LCD_SetCursor(1, 0);
+                snprintf(line, sizeof(line), "Hmin:%2d Hmax:%2d", stats.humi_min, stats.humi_max);
+                LCD_SendString(line);
+            }
+            lcd_page = (uint8_t)((lcd_page + 1) % 6);
             printf("Temp(raw=%d, dbg=%d) | Hum(raw=%d, dbg=%d) | Status=%s\r\n",
                    temperature, temp_dbg,
                    humidity, hum_dbg,
                    TemperatureManager_GetStatusText(env_status));
 
             /* ===== RGB theo nhiệt độ debug ===== */
-            switch (env_status) {
+            switch (env_status)
+            {
             case ENV_STATUS_DANGER:
                 RGB_Set(0, 1, 0);
                 break;
@@ -104,16 +129,20 @@ int main(void)
             USART1_SendStatus(
                 temp_dbg,
                 hum_dbg,
+                stats.temp_min,
+                stats.temp_max,
+                stats.humi_min,
+                stats.humi_max,
                 TemperatureManager_GetStatusText(env_status),
                 (uint8_t)env_status,
                 dht_ok,
                 lcd_ok,
                 rgb_ok,
-                buzzer_ok
-            );
+                buzzer_ok);
         }
         else
         {
+            TemperatureStats_t stats = TemperatureManager_GetStats();
             printf("DHT11 Error, step = %d\r\n", dht11_fail_step);
             dht_ok = 0;
             env_status = ENV_STATUS_SENSOR_ERROR;
@@ -129,17 +158,19 @@ int main(void)
             USART1_SendStatus(
                 -1,
                 -1,
+                stats.has_sample ? stats.temp_min : -1,
+                stats.has_sample ? stats.temp_max : -1,
+                stats.has_sample ? stats.humi_min : -1,
+                stats.has_sample ? stats.humi_max : -1,
                 TemperatureManager_GetStatusText(env_status),
                 (uint8_t)env_status,
                 dht_ok,
                 lcd_ok,
                 rgb_ok,
-                buzzer_ok
-            );
+                buzzer_ok);
         }
     }
 }
-
 
 static void SystemStartupSelfTest(void)
 {
@@ -174,16 +205,14 @@ static void SystemStartupSelfTest(void)
     LCD_Clear();
 }
 
-
-
 /* ===== RCC CONFIG ===== */
 void RCC_Config(void)
 {
     RCC_Init();
 
-    RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;   // TIM2
-    RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;   // GPIOA
-    RCC->APB2ENR |= RCC_APB2ENR_IOPBEN;   // GPIOB
-    RCC->APB2ENR |= (1u << 0);   // AFIO
+    RCC->APB1ENR |= RCC_APB1ENR_TIM2EN; // TIM2
+    RCC->APB2ENR |= RCC_APB2ENR_IOPAEN; // GPIOA
+    RCC->APB2ENR |= RCC_APB2ENR_IOPBEN; // GPIOB
+    RCC->APB2ENR |= (1u << 0);          // AFIO
     RCC->APB2ENR |= (1u << 14);
 }

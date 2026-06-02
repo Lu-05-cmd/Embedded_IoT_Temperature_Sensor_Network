@@ -56,13 +56,30 @@ mqttClient.on('message', (topic, message) => {
     if (topic === MQTT_TOPIC) {
         try {
             const payload = JSON.parse(message.toString());
-            const { temp, humi, env_status, env_level, dht, lcd, rgb, buzzer } = payload;
+            const {
+                temp,
+                humi,
+                temp_min,
+                temp_max,
+                humi_min,
+                humi_max,
+                env_status,
+                env_level,
+                dht,
+                lcd,
+                rgb,
+                buzzer
+            } = payload;
             
             if (temp === undefined || humi === undefined) return;
 
             const dataPoint = {
                 temp: Number(temp),
                 humi: Number(humi),
+                temp_min: temp_min !== undefined ? Number(temp_min) : null,
+                temp_max: temp_max !== undefined ? Number(temp_max) : null,
+                humi_min: humi_min !== undefined ? Number(humi_min) : null,
+                humi_max: humi_max !== undefined ? Number(humi_max) : null,
                 env_status: env_status || null,
                 env_level: env_level !== undefined ? Number(env_level) : null,
                 dht: dht !== undefined ? Number(dht) : 1,
@@ -102,7 +119,7 @@ let telemetryHistory = [];
 
 // API nhận dữ liệu từ ESP32 gửi lên
 app.post('/api/telemetry', (req, res) => {
-    const { temp, humi, env_status, env_level, dht, lcd, rgb, buzzer } = req.body;
+    const { temp, humi, temp_min, temp_max, humi_min, humi_max, env_status, env_level, dht, lcd, rgb, buzzer } = req.body;
 
     // Kiểm tra định dạng dữ liệu cơ bản
     if (temp === undefined || humi === undefined) {
@@ -112,6 +129,10 @@ app.post('/api/telemetry', (req, res) => {
     const dataPoint = {
         temp: Number(temp),
         humi: Number(humi),
+        temp_min: temp_min !== undefined ? Number(temp_min) : null,
+        temp_max: temp_max !== undefined ? Number(temp_max) : null,
+        humi_min: humi_min !== undefined ? Number(humi_min) : null,
+        humi_max: humi_max !== undefined ? Number(humi_max) : null,
         env_status: env_status || null,
         env_level: env_level !== undefined ? Number(env_level) : null,
         dht: dht !== undefined ? Number(dht) : 1,

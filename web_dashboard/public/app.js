@@ -37,6 +37,10 @@ function normalizeEnvStatus(data) {
     return getEnvStatus(data.temp, data.humi);
 }
 
+function formatStatValue(value) {
+    return value === undefined || value === null || Number(value) < 0 ? '--' : value;
+}
+
 // Khởi tạo đồ thị Chart.js
 function initChart() {
     const ctx = document.getElementById('liveChart').getContext('2d');
@@ -197,6 +201,8 @@ function updateDashboardUI(data) {
     tempBar.style.setProperty('--bar-width', `${tempPercent}%`);
     // Sử dụng JS để đổi chiều dài thanh trạng thái
     tempBar.style.width = `${tempPercent}%`;
+    document.getElementById('val-temp-min').innerText = envStatus === 'sensor_error' ? '--' : formatStatValue(data.temp_min);
+    document.getElementById('val-temp-max').innerText = envStatus === 'sensor_error' ? '--' : formatStatValue(data.temp_max);
 
     // 2. Cập nhật Độ ẩm
     const humiVal = document.getElementById('val-humi');
@@ -204,6 +210,8 @@ function updateDashboardUI(data) {
     const humiBar = document.getElementById('bar-humi');
     const humiPercent = envStatus === 'sensor_error' ? 0 : Math.min(Math.max(Number(humi), 0), 100);
     humiBar.style.width = `${humiPercent}%`;
+    document.getElementById('val-humi-min').innerText = envStatus === 'sensor_error' ? '--' : formatStatValue(data.humi_min);
+    document.getElementById('val-humi-max').innerText = envStatus === 'sensor_error' ? '--' : formatStatValue(data.humi_max);
 
     // 3. Cập nhật Còi Buzzer
     const buzzerCard = document.getElementById('card-buzzer');

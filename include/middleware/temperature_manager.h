@@ -8,6 +8,14 @@ typedef struct {
 	int humidity;
 } TemperatureData_t;
 
+typedef struct {
+    int temp_min;
+    int temp_max;
+    int humi_min;
+    int humi_max;
+    uint8_t has_sample;
+} TemperatureStats_t;
+
 #define TEMP_WARNING_C 32
 #define TEMP_DANGER_C  38
 #define HUM_WARNING_PERCENT 75
@@ -25,6 +33,7 @@ void TemperatureManager_Update(int temperature, int humidity);
 int TemperatureManager_GetTemperature(void);
 int TemperatureManager_GetHumidity(void);
 TemperatureData_t TemperatureManager_GetData(void);
+TemperatureStats_t TemperatureManager_GetStats(void);
 EnvStatus_t TemperatureManager_EvaluateStatus(int temperature, int humidity);
 const char *TemperatureManager_GetStatusText(EnvStatus_t status);
 

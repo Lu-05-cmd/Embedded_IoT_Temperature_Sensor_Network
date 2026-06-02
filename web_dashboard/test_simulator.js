@@ -15,6 +15,10 @@ const client = mqtt.connect(MQTT_BROKER);
 let temp = 25.0;
 let humi = 60.0;
 let buzzer = 0;
+let tempMin = temp;
+let tempMax = temp;
+let humiMin = humi;
+let humiMax = humi;
 
 function getEnvStatus(temp, humi) {
     if (temp >= 38 || humi >= 85) {
@@ -46,11 +50,21 @@ client.on('connect', () => {
         if (humi > 90) humi = 90;
 
         const envStatus = sensorError ? { text: 'SENSOR_ERROR', level: 3 } : getEnvStatus(temp, humi);
+        if (!sensorError) {
+            tempMin = Math.min(tempMin, temp);
+            tempMax = Math.max(tempMax, temp);
+            humiMin = Math.min(humiMin, humi);
+            humiMax = Math.max(humiMax, humi);
+        }
         buzzer = envStatus.level !== 0 ? 1 : 0;
 
         const payload = JSON.stringify({
             temp: sensorError ? -1 : Number(temp.toFixed(1)),
             humi: sensorError ? -1 : Number(humi.toFixed(1)),
+            temp_min: Number(tempMin.toFixed(1)),
+            temp_max: Number(tempMax.toFixed(1)),
+            humi_min: Number(humiMin.toFixed(1)),
+            humi_max: Number(humiMax.toFixed(1)),
             env_status: envStatus.text,
             env_level: envStatus.level,
             dht: sensorError ? 0 : 1,

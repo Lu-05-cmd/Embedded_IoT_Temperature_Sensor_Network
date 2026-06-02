@@ -44,6 +44,10 @@ void USART1_SendString(const char *str)
 
 void USART1_SendStatus(int temp,
                        int humi,
+                       int temp_min,
+                       int temp_max,
+                       int humi_min,
+                       int humi_max,
                        const char *env_status,
                        uint8_t env_level,
                        uint8_t dht_ok,
@@ -51,12 +55,16 @@ void USART1_SendStatus(int temp,
                        uint8_t rgb_ok,
                        uint8_t buzzer_ok)
 {
-    char buffer[128];
+    char buffer[192];
 
     sprintf(buffer,
             "{\"device\":\"stm32_01\","
             "\"temp\":%d,"
             "\"humi\":%d,"
+            "\"temp_min\":%d,"
+            "\"temp_max\":%d,"
+            "\"humi_min\":%d,"
+            "\"humi_max\":%d,"
             "\"env_status\":\"%s\","
             "\"env_level\":%d,"
             "\"dht\":%d,"
@@ -65,6 +73,10 @@ void USART1_SendStatus(int temp,
             "\"buzzer\":%d}\r\n",
             temp,
             humi,
+            temp_min,
+            temp_max,
+            humi_min,
+            humi_max,
             env_status,
             env_level,
             dht_ok,
