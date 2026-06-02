@@ -41,6 +41,39 @@ if (config.MQTT_PASSWORD) {
 
 const mqttClient = mqtt.connect(MQTT_BROKER, mqttOptions);
 
+function parseMqttJsonMessage(message) {
+    const raw = message.toString('utf8').trim();
+
+    if (!raw.startsWith('{') || !raw.endsWith('}')) {
+        console.warn(`[MQTT Client] Bo qua payload khong hoan chinh: ${raw.slice(0, 120)}`);
+        return null;
+    }
+
+    try {
+        return JSON.parse(raw);
+    } catch (e) {
+        console.warn(`[MQTT Client] Bo qua payload JSON loi: ${e.message}; raw=${raw.slice(0, 120)}`);
+        return null;
+    }
+}
+
+function normalizePayload(payload) {
+    return {
+        temp: payload.temp !== undefined ? payload.temp : payload.t,
+        humi: payload.humi !== undefined ? payload.humi : payload.h,
+        temp_min: payload.temp_min !== undefined ? payload.temp_min : payload.tn,
+        temp_max: payload.temp_max !== undefined ? payload.temp_max : payload.tx,
+        humi_min: payload.humi_min !== undefined ? payload.humi_min : payload.hn,
+        humi_max: payload.humi_max !== undefined ? payload.humi_max : payload.hx,
+        env_status: payload.env_status,
+        env_level: payload.env_level !== undefined ? payload.env_level : payload.lv,
+        dht: payload.dht !== undefined ? payload.dht : payload.dh,
+        lcd: payload.lcd,
+        rgb: payload.rgb,
+        buzzer: payload.buzzer !== undefined ? payload.buzzer : payload.bz
+    };
+}
+
 mqttClient.on('connect', () => {
     console.log(`[MQTT Client] Kết nối thành công tới Broker: ${MQTT_BROKER}`);
     mqttClient.subscribe(MQTT_TOPIC, (err) => {
@@ -54,8 +87,11 @@ mqttClient.on('connect', () => {
 
 mqttClient.on('message', (topic, message) => {
     if (topic === MQTT_TOPIC) {
+        const payload = parseMqttJsonMessage(message);
+        if (!payload) return;
+
         try {
-            const payload = JSON.parse(message.toString());
+            const normalized = normalizePayload(payload);
             const {
                 temp,
                 humi,
@@ -69,7 +105,7 @@ mqttClient.on('message', (topic, message) => {
                 lcd,
                 rgb,
                 buzzer
-            } = payload;
+            } = normalized;
             
             if (temp === undefined || humi === undefined) return;
 
@@ -119,7 +155,7 @@ let telemetryHistory = [];
 
 // API nhận dữ liệu từ ESP32 gửi lên
 app.post('/api/telemetry', (req, res) => {
-    const { temp, humi, temp_min, temp_max, humi_min, humi_max, env_status, env_level, dht, lcd, rgb, buzzer } = req.body;
+    const { temp, humi, temp_min, temp_max, humi_min, humi_max, env_status, env_level, dht, lcd, rgb, buzzer } = normalizePayload(req.body);
 
     // Kiểm tra định dạng dữ liệu cơ bản
     if (temp === undefined || humi === undefined) {

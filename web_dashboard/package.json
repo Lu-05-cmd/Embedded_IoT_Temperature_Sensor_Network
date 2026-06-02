@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "simulate": "node test_simulator.js"
+    "simulate": "node test_simulator.js",
+    "simulate:local": "node test_local_api.js"
   },
   "dependencies": {
     "express": "^4.19.2",

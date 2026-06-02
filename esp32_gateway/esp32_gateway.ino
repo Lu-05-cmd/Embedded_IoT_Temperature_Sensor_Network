@@ -18,6 +18,7 @@ void setup() {
     
     // Khởi chạy UART2 nhận dữ liệu từ STM32
     Serial2.begin(STM32_BAUDRATE, SERIAL_8N1, STM32_RX_PIN, STM32_TX_PIN);
+    Serial2.setTimeout(200);
     Serial.println("ESP32 Local Gateway (ESP-IDF MQTT Mode) đã khởi động.");
 
     // Kết nối Wi-Fi
@@ -46,7 +47,12 @@ void loop() {
             Serial.println(jsonStr);
 
             // Kiểm tra tính hợp lệ của chuỗi JSON trước khi gửi lên MQTT
-            StaticJsonDocument<256> doc;
+            if (!jsonStr.startsWith("{") || !jsonStr.endsWith("}")) {
+                Serial.println("Bo qua UART frame khong hoan chinh.");
+                return;
+            }
+
+            StaticJsonDocument<512> doc;
             DeserializationError error = deserializeJson(doc, jsonStr);
 
             if (!error) {

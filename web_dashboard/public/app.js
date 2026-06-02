@@ -7,6 +7,33 @@ const TEMP_DANGER_C = 38;
 const HUMI_WARNING_PERCENT = 75;
 const HUMI_DANGER_PERCENT = 85;
 
+const ENV_STATUS_META = {
+    normal: {
+        label: 'Bình thường',
+        className: 'status-ok',
+        pillClass: 'status-pill-success',
+        buzzerText: 'Tắt'
+    },
+    warning: {
+        label: 'Cảnh báo',
+        className: 'status-warning',
+        pillClass: 'status-pill-warning',
+        buzzerText: 'Cảnh báo'
+    },
+    danger: {
+        label: 'Nguy hiểm',
+        className: 'status-active',
+        pillClass: 'status-pill-error',
+        buzzerText: 'Kêu nhanh'
+    },
+    sensor_error: {
+        label: 'Lỗi DHT11',
+        className: 'status-error',
+        pillClass: 'status-pill-error',
+        buzzerText: 'Lỗi sensor'
+    }
+};
+
 function getEnvStatus(temp, humi) {
     const temperature = Number(temp);
     const humidity = Number(humi);
@@ -39,6 +66,56 @@ function normalizeEnvStatus(data) {
 
 function formatStatValue(value) {
     return value === undefined || value === null || Number(value) < 0 ? '--' : value;
+}
+
+function getEnvStatusInfo(data) {
+    const key = normalizeEnvStatus(data);
+    return ENV_STATUS_META[key] ? { key, ...ENV_STATUS_META[key] } : { key: 'normal', ...ENV_STATUS_META.normal };
+}
+
+function getAlertReason(data, statusKey) {
+    if (statusKey === 'sensor_error') {
+        return 'DHT11 lỗi hoặc mất tín hiệu';
+    }
+
+    const temp = Number(data.temp);
+    const humi = Number(data.humi);
+    const reasons = [];
+
+    if (temp >= TEMP_DANGER_C) reasons.push('Nhiệt độ vượt ngưỡng nguy hiểm');
+    else if (temp >= TEMP_WARNING_C) reasons.push('Nhiệt độ vượt ngưỡng cảnh báo');
+
+    if (humi >= HUMI_DANGER_PERCENT) reasons.push('Độ ẩm vượt ngưỡng nguy hiểm');
+    else if (humi >= HUMI_WARNING_PERCENT) reasons.push('Độ ẩm vượt ngưỡng cảnh báo');
+
+    return reasons.length > 0 ? reasons.join(' + ') : 'Thông số trong ngưỡng an toàn';
+}
+
+function getChartValue(data, field) {
+    const statusKey = normalizeEnvStatus(data);
+    const value = Number(data[field]);
+    return statusKey === 'sensor_error' || value < 0 || Number.isNaN(value) ? null : value;
+}
+
+function renderChartHistory(history) {
+    chart.data.labels = history.map(d => d.timestamp);
+    chart.data.datasets[0].data = history.map(d => getChartValue(d, 'temp'));
+    chart.data.datasets[1].data = history.map(d => getChartValue(d, 'humi'));
+    chart.update();
+}
+
+function appendChartPoint(dataPoint) {
+    chart.data.labels.push(dataPoint.timestamp);
+    chart.data.datasets[0].data.push(getChartValue(dataPoint, 'temp'));
+    chart.data.datasets[1].data.push(getChartValue(dataPoint, 'humi'));
+
+    if (chart.data.labels.length > 50) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+        chart.data.datasets[1].data.shift();
+    }
+
+    chart.update();
 }
 
 // Khởi tạo đồ thị Chart.js
@@ -188,7 +265,9 @@ function initChart() {
 // Cập nhật các thẻ giá trị trên Dashboard
 function updateDashboardUI(data) {
     const { temp, humi, dht, lcd, rgb, buzzer } = data;
-    const envStatus = normalizeEnvStatus(data);
+    const envStatusInfo = getEnvStatusInfo(data);
+    const envStatus = envStatusInfo.key;
+    const envReason = getAlertReason(data, envStatus);
 
     // 1. Cập nhật Nhiệt độ
     const tempVal = document.getElementById('val-temp');
@@ -213,22 +292,16 @@ function updateDashboardUI(data) {
     document.getElementById('val-humi-min').innerText = envStatus === 'sensor_error' ? '--' : formatStatValue(data.humi_min);
     document.getElementById('val-humi-max').innerText = envStatus === 'sensor_error' ? '--' : formatStatValue(data.humi_max);
 
+    const envCard = document.getElementById('card-env');
+    document.getElementById('val-env-status').innerText = envStatusInfo.label;
+    document.getElementById('val-env-reason').innerText = envReason;
+    envCard.className = `stat-card env-card ${envStatusInfo.className}`;
+
     // 3. Cập nhật Còi Buzzer
     const buzzerCard = document.getElementById('card-buzzer');
     const buzzerVal = document.getElementById('val-buzzer');
-    if (envStatus === 'sensor_error') {
-        buzzerVal.innerText = "LOI SENSOR";
-        buzzerCard.className = "stat-card buzzer-card status-error";
-    } else if (envStatus === 'danger') {
-        buzzerVal.innerText = "KEU (NGUY HIEM)";
-        buzzerCard.className = "stat-card buzzer-card status-active";
-    } else if (envStatus === 'warning') {
-        buzzerVal.innerText = "CANH BAO";
-        buzzerCard.className = "stat-card buzzer-card status-warning";
-    } else {
-        buzzerVal.innerText = "Tat";
-        buzzerCard.className = "stat-card buzzer-card status-ok";
-    }
+    buzzerVal.innerText = envStatusInfo.buzzerText;
+    buzzerCard.className = `stat-card buzzer-card ${envStatusInfo.className}`;
 
     // 4. Cập nhật Cảm biến DHT11
     const sensorCard = document.getElementById('card-sensor');
@@ -242,10 +315,19 @@ function updateDashboardUI(data) {
     }
 
     // 5. Cập nhật bảng chẩn đoán hệ thống (Diagnostics)
+    updateEnvStatusPill(envStatusInfo);
     updateStatusPill('diag-dht', dht === 1);
     updateStatusPill('diag-lcd', lcd === 1);
     updateStatusPill('diag-rgb', rgb === 1);
     updateStatusPill('diag-buzzer', buzzer === 1, false, "OK");
+}
+
+function updateEnvStatusPill(statusInfo) {
+    const el = document.getElementById('diag-env');
+    if (!el) return;
+
+    el.innerText = statusInfo.label;
+    el.className = `diag-status ${statusInfo.pillClass}`;
 }
 
 function updateStatusPill(elementId, isOk, activeAsWarning = false, okText = "OK") {
@@ -293,10 +375,7 @@ function connectWebSocket() {
         if (message.type === 'HISTORY') {
             // Nhận dữ liệu lịch sử khi vừa tải trang
             const history = message.data;
-            chart.data.labels = history.map(d => d.timestamp);
-            chart.data.datasets[0].data = history.map(d => d.temp);
-            chart.data.datasets[1].data = history.map(d => d.humi);
-            chart.update();
+            renderChartHistory(history);
 
             if (history.length > 0) {
                 updateDashboardUI(history[history.length - 1]);
@@ -307,18 +386,9 @@ function connectWebSocket() {
             const dataPoint = message.data;
 
             // Thêm vào biểu đồ
-            chart.data.labels.push(dataPoint.timestamp);
-            chart.data.datasets[0].data.push(dataPoint.temp);
-            chart.data.datasets[1].data.push(dataPoint.humi);
+            appendChartPoint(dataPoint);
 
             // Giới hạn hiển thị tối đa 50 điểm trên biểu đồ
-            if (chart.data.labels.length > 50) {
-                chart.data.labels.shift();
-                chart.data.datasets[0].data.shift();
-                chart.data.datasets[1].data.shift();
-            }
-
-            chart.update();
             updateDashboardUI(dataPoint);
         }
     };
@@ -342,10 +412,7 @@ async function loadInitialHistory() {
         const response = await fetch('/api/telemetry');
         const history = await response.json();
         if (history && history.length > 0) {
-            chart.data.labels = history.map(d => d.timestamp);
-            chart.data.datasets[0].data = history.map(d => d.temp);
-            chart.data.datasets[1].data = history.map(d => d.humi);
-            chart.update();
+            renderChartHistory(history);
             updateDashboardUI(history[history.length - 1]);
         }
     } catch (err) {
@@ -355,6 +422,9 @@ async function loadInitialHistory() {
 
 // Khởi chạy khi tải trang xong
 window.addEventListener('DOMContentLoaded', () => {
+    const buzzerLabel = document.querySelector('#card-buzzer .card-label');
+    if (buzzerLabel) buzzerLabel.innerText = 'Còi cảnh báo';
+
     initChart();
     loadInitialHistory();
     connectWebSocket();

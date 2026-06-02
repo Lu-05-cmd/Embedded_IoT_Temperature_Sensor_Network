@@ -264,6 +264,10 @@ body {
     background: rgba(148, 163, 184, 0.1);
     color: #64748b;
 }
+.env-card .card-icon {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--status-success);
+}
 
 .status-active .card-icon {
     background: rgba(239, 68, 68, 0.12) !important;
@@ -288,6 +292,15 @@ body {
     color: var(--status-warning) !important;
 }
 .status-warning .card-status-bar::after {
+    background-color: var(--status-warning) !important;
+    width: 100% !important;
+}
+
+.status-warning-card .card-icon {
+    background: rgba(245, 158, 11, 0.12) !important;
+    color: var(--status-warning) !important;
+}
+.status-warning-card .card-status-bar::after {
     background-color: var(--status-warning) !important;
     width: 100% !important;
 }
@@ -407,4 +420,10 @@ body {
     background: rgba(239, 68, 68, 0.08);
     color: var(--status-error);
     border: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.status-pill-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--status-warning);
+    border: 1px solid rgba(245, 158, 11, 0.18);
 }

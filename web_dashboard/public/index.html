@@ -71,6 +71,19 @@
                 </div>
             </div>
 
+            <!-- Environment Status Card -->
+            <div class="stat-card env-card" id="card-env">
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                </div>
+                <div class="card-content">
+                    <span class="card-label">Trạng thái môi trường</span>
+                    <h2 class="card-value status-text" id="val-env-status">--</h2>
+                    <div class="card-range" id="val-env-reason">Đang chờ dữ liệu</div>
+                    <div class="card-status-bar" id="bar-env"></div>
+                </div>
+            </div>
+
             <!-- DHT11 Connection Status -->
             <div class="stat-card sensor-card" id="card-sensor">
                 <div class="card-icon">
@@ -101,6 +114,10 @@
             <div class="diagnostics-card">
                 <h3>Trạng thái hệ thống</h3>
                 <ul class="diag-list">
+                    <li>
+                        <span class="diag-name">Trang thai moi truong</span>
+                        <span class="diag-status" id="diag-env">--</span>
+                    </li>
                     <li>
                         <span class="diag-name">Đọc cảm biến DHT11</span>
                         <span class="diag-status" id="diag-dht">--</span>

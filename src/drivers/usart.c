@@ -55,34 +55,35 @@ void USART1_SendStatus(int temp,
                        uint8_t rgb_ok,
                        uint8_t buzzer_ok)
 {
-    char buffer[192];
+    char buffer[256];
 
-    sprintf(buffer,
-            "{\"device\":\"stm32_01\","
-            "\"temp\":%d,"
-            "\"humi\":%d,"
-            "\"temp_min\":%d,"
-            "\"temp_max\":%d,"
-            "\"humi_min\":%d,"
-            "\"humi_max\":%d,"
-            "\"env_status\":\"%s\","
-            "\"env_level\":%d,"
-            "\"dht\":%d,"
-            "\"lcd\":%d,"
-            "\"rgb\":%d,"
-            "\"buzzer\":%d}\r\n",
-            temp,
-            humi,
-            temp_min,
-            temp_max,
-            humi_min,
-            humi_max,
-            env_status,
-            env_level,
-            dht_ok,
-            lcd_ok,
-            rgb_ok,
-            buzzer_ok);
+    (void)env_status;
+
+    snprintf(buffer,
+             sizeof(buffer),
+             "{\"d\":\"stm32_01\","
+             "\"t\":%d,"
+             "\"h\":%d,"
+             "\"tn\":%d,"
+             "\"tx\":%d,"
+             "\"hn\":%d,"
+             "\"hx\":%d,"
+             "\"lv\":%d,"
+             "\"dh\":%d,"
+             "\"lcd\":%d,"
+             "\"rgb\":%d,"
+             "\"bz\":%d}\r\n",
+             temp,
+             humi,
+             temp_min,
+             temp_max,
+             humi_min,
+             humi_max,
+             env_level,
+             dht_ok,
+             lcd_ok,
+             rgb_ok,
+             buzzer_ok);
 
     USART1_SendString(buffer);
 }
