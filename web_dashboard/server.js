@@ -106,7 +106,7 @@ mqttClient.on('message', (topic, message) => {
                 rgb,
                 buzzer
             } = normalized;
-            
+
             if (temp === undefined || humi === undefined) return;
 
             const dataPoint = {
@@ -139,7 +139,7 @@ mqttClient.on('message', (topic, message) => {
                 }
             });
 
-            console.log(`[MQTT -> Server] Nhận dữ liệu: Temp=${temp}°C, Humi=${humi}%, Buzzer=${buzzer}`);
+            console.log(`[${dataPoint.timestamp}] [MQTT -> Server] Nhận dữ liệu: Temp=${temp}°C, Humi=${humi}%, Buzzer=${buzzer}`);
         } catch (e) {
             console.error('[MQTT Client] Lỗi khi xử lý tin nhắn:', e.message);
         }
@@ -192,7 +192,7 @@ app.post('/api/telemetry', (req, res) => {
         }
     });
 
-    console.log(`[ESP32 -> Server] Nhận dữ liệu: Temp=${temp}°C, Humi=${humi}%, Buzzer=${buzzer}`);
+    console.log(`[${dataPoint.timestamp}] [ESP32 -> Server] Nhận dữ liệu: Temp=${temp}°C, Humi=${humi}%, Buzzer=${buzzer}`);
     res.status(202).json({ status: 'success', message: 'Đã nhận và phân phối dữ liệu.' });
 });
 
@@ -204,6 +204,11 @@ app.get('/api/telemetry', (req, res) => {
 // Sự kiện kết nối WebSocket từ trang web
 wss.on('connection', (ws) => {
     console.log('[Web Client] Kết nối WebSocket mới được thiết lập.');
+    ws.isAlive = true;
+
+    ws.on('pong', () => {
+        ws.isAlive = true;
+    });
 
     // Gửi lịch sử dữ liệu hiện tại ngay khi client kết nối
     ws.send(JSON.stringify({ type: 'HISTORY', data: telemetryHistory }));
@@ -211,6 +216,22 @@ wss.on('connection', (ws) => {
     ws.on('close', () => {
         console.log('[Web Client] Ngắt kết nối WebSocket.');
     });
+});
+
+// Định kỳ gửi gói tin ping 30s một lần để giữ kết nối và dọn dẹp kết nối chết
+const heartbeatInterval = setInterval(() => {
+    wss.clients.forEach((ws) => {
+        if (ws.isAlive === false) {
+            console.log('[Web Client] Thiết bị mất kết nối (dead connection), tiến hành giải phóng.');
+            return ws.terminate();
+        }
+        ws.isAlive = false;
+        ws.ping();
+    });
+}, 30000);
+
+wss.on('close', () => {
+    clearInterval(heartbeatInterval);
 });
 
 // Khởi động Server
