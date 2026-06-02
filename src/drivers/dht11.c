@@ -122,7 +122,7 @@ uint8_t DHT11_ReadBit(void)
 
     // 3. phân loại bit
     // threshold ~40us
-    return (count > 6) ? 1 : 0;
+    return (count > 40) ? 1 : 0;
 }
 
 /* =========================================================
