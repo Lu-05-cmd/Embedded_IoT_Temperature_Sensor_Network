@@ -9,6 +9,7 @@
 #include "../include/drivers/buzzer.h"
 #include "../include/drivers/usart.h"
 #include "../include/drivers/lcd.h"
+#include "../include/middleware/temperature_manager.h"
 
 void RCC_Config(void);
 
@@ -30,6 +31,7 @@ int main(void)
     Buzzer_Init();   // nếu có
     USART1_Init(112500);
     LCD_Init();
+    TemperatureManager_Init();
 
     
     while (1)
@@ -46,37 +48,56 @@ int main(void)
             /* ===== APPLY OFFSET DEBUG ===== */
             int temp_dbg = (int)temperature + temp_offset;
             int hum_dbg  = (int)humidity - hum_offset;
+            EnvStatus_t env_status;
 
             char line[17];
+            TemperatureManager_Update(temp_dbg, hum_dbg);
+            env_status = TemperatureManager_EvaluateStatus(temp_dbg, hum_dbg);
 
             LCD_Clear();
 
             LCD_SetCursor(0, 0);
-            snprintf(line, sizeof(line), "Temp:%2d C", temp_dbg);
+            snprintf(line, sizeof(line), "T:%2dC H:%2d%%", temp_dbg, hum_dbg);
             LCD_SendString(line);
 
             LCD_SetCursor(1, 0);
-            snprintf(line, sizeof(line), "Humi:%2d %%", hum_dbg);
+            snprintf(line, sizeof(line), "%s", TemperatureManager_GetStatusText(env_status));
             LCD_SendString(line);
-            printf("Temp(raw=%d, dbg=%d) | Hum(raw=%d, dbg=%d)\r\n",
+            printf("Temp(raw=%d, dbg=%d) | Hum(raw=%d, dbg=%d) | Status=%s\r\n",
                    temperature, temp_dbg,
-                   humidity, hum_dbg);
+                   humidity, hum_dbg,
+                   TemperatureManager_GetStatusText(env_status));
 
             /* ===== RGB theo nhiệt độ debug ===== */
-            RGB_UpdateByTemp((uint8_t)temp_dbg);
-            
+            switch (env_status) {
+            case ENV_STATUS_DANGER:
+                RGB_Set(0, 1, 0);
+                break;
+            case ENV_STATUS_WARNING:
+                RGB_Set(1, 1, 0);
+                break;
+            default:
+                RGB_Set(1, 0, 1);
+                break;
+            }
+
             /* ===== BUZZER ===== */
-            if (temp_dbg > 35)  Buzzer_On();
-            else   Buzzer_Off();
+            if (env_status != ENV_STATUS_NORMAL) {
+                Buzzer_On();
+            } else {
+                Buzzer_Off();
+            }
 
             USART1_SendStatus(
-            temp_dbg,
-            hum_dbg,
-            dht_ok,
-            lcd_ok,
-            rgb_ok,
-            buzzer_ok
-        );
+                temp_dbg,
+                hum_dbg,
+                TemperatureManager_GetStatusText(env_status),
+                (uint8_t)env_status,
+                dht_ok,
+                lcd_ok,
+                rgb_ok,
+                buzzer_ok
+            );
         }
         else
         {

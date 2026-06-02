@@ -275,6 +275,15 @@ body {
     width: 100% !important;
 }
 
+.status-warning .card-icon {
+    background: rgba(245, 158, 11, 0.12) !important;
+    color: var(--status-warning) !important;
+}
+.status-warning .card-status-bar::after {
+    background-color: var(--status-warning) !important;
+    width: 100% !important;
+}
+
 .status-error .card-icon {
     background: rgba(239, 68, 68, 0.12) !important;
     color: var(--status-error) !important;

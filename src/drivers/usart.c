@@ -44,6 +44,8 @@ void USART1_SendString(const char *str)
 
 void USART1_SendStatus(int temp,
                        int humi,
+                       const char *env_status,
+                       uint8_t env_level,
                        uint8_t dht_ok,
                        uint8_t lcd_ok,
                        uint8_t rgb_ok,
@@ -55,12 +57,16 @@ void USART1_SendStatus(int temp,
             "{\"device\":\"stm32_01\","
             "\"temp\":%d,"
             "\"humi\":%d,"
+            "\"env_status\":\"%s\","
+            "\"env_level\":%d,"
             "\"dht\":%d,"
             "\"lcd\":%d,"
             "\"rgb\":%d,"
             "\"buzzer\":%d}\r\n",
             temp,
             humi,
+            env_status,
+            env_level,
             dht_ok,
             lcd_ok,
             rgb_ok,

@@ -10,6 +10,8 @@ void USART1_SendString(const char *str);
 
 void USART1_SendStatus(int temp,
                        int humi,
+                       const char *env_status,
+                       uint8_t env_level,
                        uint8_t dht_ok,
                        uint8_t lcd_ok,
                        uint8_t rgb_ok,

@@ -16,6 +16,18 @@ let temp = 25.0;
 let humi = 60.0;
 let buzzer = 0;
 
+function getEnvStatus(temp, humi) {
+    if (temp >= 38 || humi >= 85) {
+        return { text: 'DANGER', level: 2 };
+    }
+
+    if (temp >= 32 || humi >= 75) {
+        return { text: 'WARNING', level: 1 };
+    }
+
+    return { text: 'NORMAL', level: 0 };
+}
+
 client.on('connect', () => {
     console.log("[SIMULATOR] Đã kết nối thành công tới MQTT Broker.");
     
@@ -32,11 +44,14 @@ client.on('connect', () => {
         if (humi > 90) humi = 90;
 
         // Còi kêu nếu nhiệt độ vượt quá 35°C (khớp logic code STM32)
-        buzzer = temp > 35.0 ? 1 : 0;
+        const envStatus = getEnvStatus(temp, humi);
+        buzzer = envStatus.level !== 0 ? 1 : 0;
 
         const payload = JSON.stringify({
             temp: Number(temp.toFixed(1)),
             humi: Number(humi.toFixed(1)),
+            env_status: envStatus.text,
+            env_level: envStatus.level,
             dht: 1,
             lcd: 1,
             rgb: 1,

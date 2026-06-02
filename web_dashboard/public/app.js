@@ -2,6 +2,40 @@
 let chart;
 let socket;
 
+const TEMP_WARNING_C = 32;
+const TEMP_DANGER_C = 38;
+const HUMI_WARNING_PERCENT = 75;
+const HUMI_DANGER_PERCENT = 85;
+
+function getEnvStatus(temp, humi) {
+    const temperature = Number(temp);
+    const humidity = Number(humi);
+
+    if (temperature >= TEMP_DANGER_C || humidity >= HUMI_DANGER_PERCENT) {
+        return 'danger';
+    }
+
+    if (temperature >= TEMP_WARNING_C || humidity >= HUMI_WARNING_PERCENT) {
+        return 'warning';
+    }
+
+    return 'normal';
+}
+
+function normalizeEnvStatus(data) {
+    if (data.env_status) {
+        return String(data.env_status).toLowerCase();
+    }
+
+    if (data.env_level !== undefined && data.env_level !== null) {
+        const level = Number(data.env_level);
+        if (level === 2) return 'danger';
+        if (level === 1) return 'warning';
+    }
+
+    return getEnvStatus(data.temp, data.humi);
+}
+
 // Khởi tạo đồ thị Chart.js
 function initChart() {
     const ctx = document.getElementById('liveChart').getContext('2d');
@@ -149,7 +183,7 @@ function initChart() {
 // Cập nhật các thẻ giá trị trên Dashboard
 function updateDashboardUI(data) {
     const { temp, humi, dht, lcd, rgb, buzzer } = data;
-    const isOverheat = Number(temp) > 35;
+    const envStatus = normalizeEnvStatus(data);
 
     // 1. Cập nhật Nhiệt độ
     const tempVal = document.getElementById('val-temp');
@@ -165,16 +199,20 @@ function updateDashboardUI(data) {
     const humiVal = document.getElementById('val-humi');
     humiVal.innerText = humi;
     const humiBar = document.getElementById('bar-humi');
-    humiBar.style.width = `${humi}%`;
+    const humiPercent = Math.min(Math.max(Number(humi), 0), 100);
+    humiBar.style.width = `${humiPercent}%`;
 
     // 3. Cập nhật Còi Buzzer
     const buzzerCard = document.getElementById('card-buzzer');
     const buzzerVal = document.getElementById('val-buzzer');
-    if (isOverheat) {
-        buzzerVal.innerText = "KÊU (Quá nhiệt)";
+    if (envStatus === 'danger') {
+        buzzerVal.innerText = "KEU (NGUY HIEM)";
         buzzerCard.className = "stat-card buzzer-card status-active";
+    } else if (envStatus === 'warning') {
+        buzzerVal.innerText = "CANH BAO";
+        buzzerCard.className = "stat-card buzzer-card status-warning";
     } else {
-        buzzerVal.innerText = "Tắt";
+        buzzerVal.innerText = "Tat";
         buzzerCard.className = "stat-card buzzer-card status-ok";
     }
 

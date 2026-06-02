@@ -56,13 +56,15 @@ mqttClient.on('message', (topic, message) => {
     if (topic === MQTT_TOPIC) {
         try {
             const payload = JSON.parse(message.toString());
-            const { temp, humi, dht, lcd, rgb, buzzer } = payload;
+            const { temp, humi, env_status, env_level, dht, lcd, rgb, buzzer } = payload;
             
             if (temp === undefined || humi === undefined) return;
 
             const dataPoint = {
                 temp: Number(temp),
                 humi: Number(humi),
+                env_status: env_status || null,
+                env_level: env_level !== undefined ? Number(env_level) : null,
                 dht: dht !== undefined ? Number(dht) : 1,
                 lcd: lcd !== undefined ? Number(lcd) : 1,
                 rgb: rgb !== undefined ? Number(rgb) : 1,
@@ -100,7 +102,7 @@ let telemetryHistory = [];
 
 // API nhận dữ liệu từ ESP32 gửi lên
 app.post('/api/telemetry', (req, res) => {
-    const { temp, humi, dht, lcd, rgb, buzzer } = req.body;
+    const { temp, humi, env_status, env_level, dht, lcd, rgb, buzzer } = req.body;
 
     // Kiểm tra định dạng dữ liệu cơ bản
     if (temp === undefined || humi === undefined) {
@@ -110,6 +112,8 @@ app.post('/api/telemetry', (req, res) => {
     const dataPoint = {
         temp: Number(temp),
         humi: Number(humi),
+        env_status: env_status || null,
+        env_level: env_level !== undefined ? Number(env_level) : null,
         dht: dht !== undefined ? Number(dht) : 1,
         lcd: lcd !== undefined ? Number(lcd) : 1,
         rgb: rgb !== undefined ? Number(rgb) : 1,
