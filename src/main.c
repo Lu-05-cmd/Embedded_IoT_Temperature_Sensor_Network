@@ -12,6 +12,7 @@
 #include "../include/middleware/temperature_manager.h"
 
 void RCC_Config(void);
+static void SystemStartupSelfTest(void);
 
 int main(void)
 {
@@ -34,6 +35,7 @@ int main(void)
     USART1_Init(112500);
     LCD_Init();
     TemperatureManager_Init();
+    SystemStartupSelfTest();
 
     
     while (1)
@@ -118,6 +120,40 @@ int main(void)
             Buzzer_Off();
         }
     }
+}
+
+
+static void SystemStartupSelfTest(void)
+{
+    LCD_Clear();
+    LCD_SetCursor(0, 0);
+    LCD_SendString("System Checking");
+    LCD_SetCursor(1, 0);
+    LCD_SendString("RGB/Buzzer Test");
+
+    RGB_Set(1, 0, 0);
+    SysTick_DelayMs(250);
+    RGB_Set(0, 1, 0);
+    SysTick_DelayMs(250);
+    RGB_Set(0, 0, 1);
+    SysTick_DelayMs(250);
+    RGB_Off();
+
+    Buzzer_On();
+    SysTick_DelayMs(150);
+    Buzzer_Off();
+    SysTick_DelayMs(150);
+    Buzzer_On();
+    SysTick_DelayMs(150);
+    Buzzer_Off();
+
+    LCD_Clear();
+    LCD_SetCursor(0, 0);
+    LCD_SendString("System OK");
+    LCD_SetCursor(1, 0);
+    LCD_SendString("Starting...");
+    SysTick_DelayMs(700);
+    LCD_Clear();
 }
 
 
