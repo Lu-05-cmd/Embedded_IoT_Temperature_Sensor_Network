@@ -17,6 +17,8 @@ int main(void)
 {
     uint8_t humidity = 0;
     uint8_t temperature = 0;
+    EnvStatus_t env_status = ENV_STATUS_NORMAL;
+    uint32_t last_sensor_read_ms = 0;
 
     uint8_t temp_offset = 10;
     uint8_t hum_offset  = 67;
@@ -37,10 +39,25 @@ int main(void)
     while (1)
     {
         extern uint8_t dht11_fail_step;
+        uint32_t now_ms = SysTick_GetMs();
         uint8_t dht_ok;
         uint8_t lcd_ok = 1;
         uint8_t rgb_ok = 1;
         uint8_t buzzer_ok = 1;
+
+        if (env_status == ENV_STATUS_DANGER) {
+            Buzzer_UpdateAlert(BUZZER_ALERT_FAST, now_ms);
+        } else if (env_status == ENV_STATUS_WARNING) {
+            Buzzer_UpdateAlert(BUZZER_ALERT_SLOW, now_ms);
+        } else {
+            Buzzer_UpdateAlert(BUZZER_ALERT_OFF, now_ms);
+        }
+
+        if ((now_ms - last_sensor_read_ms) < 1000) {
+            SysTick_DelayMs(10);
+            continue;
+        }
+        last_sensor_read_ms = now_ms;
 
         if (DHT11_ReadData(&temperature, &humidity))
         {
@@ -48,7 +65,6 @@ int main(void)
             /* ===== APPLY OFFSET DEBUG ===== */
             int temp_dbg = (int)temperature + temp_offset;
             int hum_dbg  = (int)humidity - hum_offset;
-            EnvStatus_t env_status;
 
             char line[17];
             TemperatureManager_Update(temp_dbg, hum_dbg);
@@ -81,13 +97,6 @@ int main(void)
                 break;
             }
 
-            /* ===== BUZZER ===== */
-            if (env_status != ENV_STATUS_NORMAL) {
-                Buzzer_On();
-            } else {
-                Buzzer_Off();
-            }
-
             USART1_SendStatus(
                 temp_dbg,
                 hum_dbg,
@@ -103,11 +112,11 @@ int main(void)
         {
             printf("DHT11 Error, step = %d\r\n", dht11_fail_step);
             dht_ok = 0;
+            env_status = ENV_STATUS_NORMAL;
             /* Error state */
             // RGB_Set(0, 1, 0);  // đỏ báo lỗi
             Buzzer_Off();
         }
-        SysTick_DelayMs(1000);
     }
 }
 

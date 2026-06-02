@@ -26,3 +26,8 @@ void SysTick_DelayMs(uint32_t ms)
     uint32_t start = g_msTicks;
     while ((g_msTicks - start) < ms);
 }
+
+uint32_t SysTick_GetMs(void)
+{
+    return g_msTicks;
+}
