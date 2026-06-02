@@ -38,6 +38,8 @@ EnvStatus_t TemperatureManager_EvaluateStatus(int temperature, int humidity) {
 
 const char *TemperatureManager_GetStatusText(EnvStatus_t status) {
     switch (status) {
+    case ENV_STATUS_SENSOR_ERROR:
+        return "SENSOR_ERROR";
     case ENV_STATUS_DANGER:
         return "DANGER";
     case ENV_STATUS_WARNING:

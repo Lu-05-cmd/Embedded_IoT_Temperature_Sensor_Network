@@ -47,7 +47,9 @@ int main(void)
         uint8_t rgb_ok = 1;
         uint8_t buzzer_ok = 1;
 
-        if (env_status == ENV_STATUS_DANGER) {
+        if (env_status == ENV_STATUS_SENSOR_ERROR) {
+            Buzzer_UpdateAlert(BUZZER_ALERT_ERROR, now_ms);
+        } else if (env_status == ENV_STATUS_DANGER) {
             Buzzer_UpdateAlert(BUZZER_ALERT_FAST, now_ms);
         } else if (env_status == ENV_STATUS_WARNING) {
             Buzzer_UpdateAlert(BUZZER_ALERT_SLOW, now_ms);
@@ -114,10 +116,26 @@ int main(void)
         {
             printf("DHT11 Error, step = %d\r\n", dht11_fail_step);
             dht_ok = 0;
-            env_status = ENV_STATUS_NORMAL;
-            /* Error state */
-            // RGB_Set(0, 1, 0);  // đỏ báo lỗi
-            Buzzer_Off();
+            env_status = ENV_STATUS_SENSOR_ERROR;
+
+            LCD_Clear();
+            LCD_SetCursor(0, 0);
+            LCD_SendString("DHT11 ERROR");
+            LCD_SetCursor(1, 0);
+            LCD_SendString("Check sensor");
+
+            RGB_Set(0, 1, 0);
+
+            USART1_SendStatus(
+                -1,
+                -1,
+                TemperatureManager_GetStatusText(env_status),
+                (uint8_t)env_status,
+                dht_ok,
+                lcd_ok,
+                rgb_ok,
+                buzzer_ok
+            );
         }
     }
 }

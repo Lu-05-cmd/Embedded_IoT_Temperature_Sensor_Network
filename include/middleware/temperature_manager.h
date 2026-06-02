@@ -16,7 +16,8 @@ typedef struct {
 typedef enum {
     ENV_STATUS_NORMAL = 0,
     ENV_STATUS_WARNING,
-    ENV_STATUS_DANGER
+    ENV_STATUS_DANGER,
+    ENV_STATUS_SENSOR_ERROR
 } EnvStatus_t;
 
 void TemperatureManager_Init(void);

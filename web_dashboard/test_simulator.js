@@ -33,6 +33,8 @@ client.on('connect', () => {
     
     // Gửi dữ liệu định kỳ mỗi 2 giây
     setInterval(() => {
+        const sensorError = Math.random() < 0.05;
+
         // Tạo dữ liệu nhiệt độ & độ ẩm thay đổi ngẫu nhiên theo thời gian
         temp += (Math.random() - 0.5) * 1.5;
         humi += (Math.random() - 0.5) * 2.0;
@@ -43,16 +45,15 @@ client.on('connect', () => {
         if (humi < 30) humi = 30;
         if (humi > 90) humi = 90;
 
-        // Còi kêu nếu nhiệt độ vượt quá 35°C (khớp logic code STM32)
-        const envStatus = getEnvStatus(temp, humi);
+        const envStatus = sensorError ? { text: 'SENSOR_ERROR', level: 3 } : getEnvStatus(temp, humi);
         buzzer = envStatus.level !== 0 ? 1 : 0;
 
         const payload = JSON.stringify({
-            temp: Number(temp.toFixed(1)),
-            humi: Number(humi.toFixed(1)),
+            temp: sensorError ? -1 : Number(temp.toFixed(1)),
+            humi: sensorError ? -1 : Number(humi.toFixed(1)),
             env_status: envStatus.text,
             env_level: envStatus.level,
-            dht: 1,
+            dht: sensorError ? 0 : 1,
             lcd: 1,
             rgb: 1,
             buzzer: buzzer

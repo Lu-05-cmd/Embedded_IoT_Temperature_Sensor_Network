@@ -6,7 +6,8 @@
 typedef enum {
     BUZZER_ALERT_OFF = 0,
     BUZZER_ALERT_SLOW,
-    BUZZER_ALERT_FAST
+    BUZZER_ALERT_FAST,
+    BUZZER_ALERT_ERROR
 } BuzzerAlertMode_t;
 
 void Buzzer_Init(void);

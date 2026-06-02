@@ -29,6 +29,7 @@ function normalizeEnvStatus(data) {
 
     if (data.env_level !== undefined && data.env_level !== null) {
         const level = Number(data.env_level);
+        if (level === 3) return 'sensor_error';
         if (level === 2) return 'danger';
         if (level === 1) return 'warning';
     }
@@ -187,25 +188,30 @@ function updateDashboardUI(data) {
 
     // 1. Cập nhật Nhiệt độ
     const tempVal = document.getElementById('val-temp');
-    tempVal.innerText = temp;
+    tempVal.innerText = envStatus === 'sensor_error' ? '--' : temp;
     const tempBar = document.getElementById('bar-temp');
     // Tính phần trăm thanh đo dựa trên khoảng nhiệt độ 0-50°C
-    const tempPercent = Math.min(Math.max((temp / 50) * 100, 0), 100);
+    const tempPercent = envStatus === 'sensor_error'
+        ? 0
+        : Math.min(Math.max((Number(temp) / 50) * 100, 0), 100);
     tempBar.style.setProperty('--bar-width', `${tempPercent}%`);
     // Sử dụng JS để đổi chiều dài thanh trạng thái
     tempBar.style.width = `${tempPercent}%`;
 
     // 2. Cập nhật Độ ẩm
     const humiVal = document.getElementById('val-humi');
-    humiVal.innerText = humi;
+    humiVal.innerText = envStatus === 'sensor_error' ? '--' : humi;
     const humiBar = document.getElementById('bar-humi');
-    const humiPercent = Math.min(Math.max(Number(humi), 0), 100);
+    const humiPercent = envStatus === 'sensor_error' ? 0 : Math.min(Math.max(Number(humi), 0), 100);
     humiBar.style.width = `${humiPercent}%`;
 
     // 3. Cập nhật Còi Buzzer
     const buzzerCard = document.getElementById('card-buzzer');
     const buzzerVal = document.getElementById('val-buzzer');
-    if (envStatus === 'danger') {
+    if (envStatus === 'sensor_error') {
+        buzzerVal.innerText = "LOI SENSOR";
+        buzzerCard.className = "stat-card buzzer-card status-error";
+    } else if (envStatus === 'danger') {
         buzzerVal.innerText = "KEU (NGUY HIEM)";
         buzzerCard.className = "stat-card buzzer-card status-active";
     } else if (envStatus === 'warning') {

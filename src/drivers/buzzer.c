@@ -46,18 +46,26 @@ void Buzzer_UpdateAlert(BuzzerAlertMode_t mode, uint32_t now_ms)
         return;
     }
 
-    if (mode == BUZZER_ALERT_FAST)
+    if (mode == BUZZER_ALERT_ERROR)
+    {
+        period_ms = 1200;
+        on_ms = 0;
+        should_be_on = (now_ms % period_ms) < 120 ||
+                       ((now_ms + 1000) % period_ms) < 120 ||
+                       ((now_ms + 800) % period_ms) < 120;
+    }
+    else if (mode == BUZZER_ALERT_FAST)
     {
         period_ms = 700;
         on_ms = 250;
+        should_be_on = (now_ms % period_ms) < on_ms;
     }
     else
     {
         period_ms = 3000;
         on_ms = 200;
+        should_be_on = (now_ms % period_ms) < on_ms;
     }
-
-    should_be_on = (now_ms % period_ms) < on_ms;
 
     if (should_be_on && !alert_output_on)
     {
