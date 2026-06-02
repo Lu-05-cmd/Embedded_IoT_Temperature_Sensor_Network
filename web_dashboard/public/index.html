@@ -13,6 +13,8 @@
         rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- ResponsiveVoice TTS -->
+    <script src="https://code.responsivevoice.org/responsivevoice.js?key=KxIexpEP"></script>
 </head>
 
 <body>
@@ -174,6 +176,13 @@
                     <li>
                         <span class="diag-name">Còi Buzzer STM32</span>
                         <span class="diag-status" id="diag-buzzer">--</span>
+                    </li>
+                    <li class="speech-toggle-item">
+                        <span class="diag-name">Đọc cảnh báo giọng nói</span>
+                        <label class="switch">
+                            <input type="checkbox" id="voice-alert-toggle">
+                            <span class="slider round"></span>
+                        </label>
                     </li>
                 </ul>
             </div>

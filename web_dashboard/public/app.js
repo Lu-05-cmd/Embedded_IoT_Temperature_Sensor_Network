@@ -7,6 +7,10 @@ let currentChartMode = 'merged';
 let socket;
 const MAX_CHART_POINTS = 25;
 
+let voiceAlertEnabled = localStorage.getItem('voiceAlertEnabled') === 'true';
+let lastVoiceAlertTime = 0;
+const VOICE_ALERT_COOLDOWN_MS = 15000;
+
 const TEMP_WARNING_C = 32;
 const TEMP_DANGER_C = 38;
 const HUMI_WARNING_PERCENT = 75;
@@ -536,6 +540,45 @@ function updateDashboardUI(data) {
     updateStatusPill('diag-lcd', lcd === 1);
     updateStatusPill('diag-rgb', rgb === 1);
     updateStatusPill('diag-buzzer', buzzer === 1, false, "OK");
+
+    // 6. Phát âm thanh cảnh báo tự động bằng giọng nói nếu được bật
+    if (voiceAlertEnabled) {
+        const now = Date.now();
+        if (now - lastVoiceAlertTime > VOICE_ALERT_COOLDOWN_MS) {
+            let alertText = "";
+
+            if (dht !== 1 || envStatus === 'sensor_error') {
+                alertText = "Cảnh báo lỗi! Cảm biến lỗi hoặc mất kết nối!";
+            } else if (envStatus === 'danger') {
+                const isTempDanger = temp !== undefined && Number(temp) >= TEMP_DANGER_C;
+                const isHumiDanger = humi !== undefined && Number(humi) >= HUMI_DANGER_PERCENT;
+                
+                if (isTempDanger && isHumiDanger) {
+                    alertText = `Cảnh báo nguy hiểm! Nhiệt độ ${temp} độ C và độ ẩm ${humi} phần trăm đều vượt ngưỡng nguy hiểm!`;
+                } else if (isTempDanger) {
+                    alertText = `Cảnh báo nguy hiểm! Nhiệt độ phòng đang quá cao, mức độ ${temp} độ C!`;
+                } else if (isHumiDanger) {
+                    alertText = `Cảnh báo nguy hiểm! Độ ẩm đang quá cao, mức độ ${humi} phần trăm!`;
+                }
+            } else if (envStatus === 'warning') {
+                const isTempWarning = temp !== undefined && Number(temp) >= TEMP_WARNING_C;
+                const isHumiWarning = humi !== undefined && Number(humi) >= HUMI_WARNING_PERCENT;
+                
+                if (isTempWarning && isHumiWarning) {
+                    alertText = `Cảnh báo! Nhiệt độ ${temp} độ C và độ ẩm ${humi} phần trăm đang ở mức cảnh báo!`;
+                } else if (isTempWarning) {
+                    alertText = `Cảnh báo! Nhiệt độ phòng đang tăng cao, mức độ ${temp} độ C!`;
+                } else if (isHumiWarning) {
+                    alertText = `Cảnh báo! Độ ẩm phòng đang cao, mức độ ${humi} phần trăm!`;
+                }
+            }
+
+            if (alertText) {
+                lastVoiceAlertTime = now;
+                speakText(alertText);
+            }
+        }
+    }
 }
 
 function updateEnvStatusPill(statusInfo) {
@@ -636,10 +679,55 @@ async function loadInitialHistory() {
     }
 }
 
+function speakText(text) {
+    if (typeof responsiveVoice !== 'undefined') {
+        try {
+            responsiveVoice.cancel();
+            responsiveVoice.speak(text, "Vietnamese Female", { rate: 1.0, pitch: 1.0 });
+        } catch (e) {
+            console.error("Lỗi ResponsiveVoice:", e);
+        }
+    } else if ('speechSynthesis' in window) {
+        // Fallback sang native Web Speech API phòng hờ mất mạng
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        const voices = window.speechSynthesis.getVoices();
+        const viVoice = voices.find(v => v.lang.toLowerCase().replace('_', '-').includes('vi-vn')) ||
+                        voices.find(v => v.lang.toLowerCase().includes('vi'));
+        if (viVoice) {
+            utterance.voice = viVoice;
+        }
+        utterance.lang = 'vi-VN';
+        window.speechSynthesis.speak(utterance);
+    }
+}
+
 // Khởi chạy khi tải trang xong
 window.addEventListener('DOMContentLoaded', () => {
     const buzzerLabel = document.querySelector('#card-buzzer .card-label');
     if (buzzerLabel) buzzerLabel.innerText = 'Còi cảnh báo';
+
+    const voiceToggle = document.getElementById('voice-alert-toggle');
+    if (voiceToggle) {
+        voiceToggle.checked = voiceAlertEnabled;
+        voiceToggle.addEventListener('change', (e) => {
+            voiceAlertEnabled = e.target.checked;
+            localStorage.setItem('voiceAlertEnabled', voiceAlertEnabled);
+            if (voiceAlertEnabled) {
+                speakText("Đã bật đọc cảnh báo bằng giọng nói.");
+            }
+        });
+    }
+
+    // Kích hoạt nạp trước danh sách giọng đọc tiếng Việt trên Chrome/Edge
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.getVoices();
+        if (window.speechSynthesis.onvoiceschanged !== undefined) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.getVoices();
+            };
+        }
+    }
 
     initChart();
     loadInitialHistory();
