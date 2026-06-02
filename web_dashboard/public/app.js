@@ -5,7 +5,7 @@ let socket;
 // Khởi tạo đồ thị Chart.js
 function initChart() {
     const ctx = document.getElementById('liveChart').getContext('2d');
-    
+
     // Tạo gradient màu nền cho biểu đồ nhiệt độ
     const tempGradient = ctx.createLinearGradient(0, 0, 0, 350);
     tempGradient.addColorStop(0, 'rgba(37, 99, 235, 0.2)');
@@ -120,7 +120,7 @@ function initChart() {
                             family: 'Plus Jakarta Sans',
                             weight: '600'
                         },
-                        callback: function(value) { return value + ' °C'; }
+                        callback: function (value) { return value + ' °C'; }
                     }
                 },
                 'y-humi': {
@@ -138,7 +138,7 @@ function initChart() {
                             family: 'Plus Jakarta Sans',
                             weight: '600'
                         },
-                        callback: function(value) { return value + ' %'; }
+                        callback: function (value) { return value + ' %'; }
                     }
                 }
             }
@@ -149,6 +149,7 @@ function initChart() {
 // Cập nhật các thẻ giá trị trên Dashboard
 function updateDashboardUI(data) {
     const { temp, humi, dht, lcd, rgb, buzzer } = data;
+    const isOverheat = Number(temp) > 35;
 
     // 1. Cập nhật Nhiệt độ
     const tempVal = document.getElementById('val-temp');
@@ -169,7 +170,7 @@ function updateDashboardUI(data) {
     // 3. Cập nhật Còi Buzzer
     const buzzerCard = document.getElementById('card-buzzer');
     const buzzerVal = document.getElementById('val-buzzer');
-    if (buzzer === 1) {
+    if (isOverheat) {
         buzzerVal.innerText = "KÊU (Quá nhiệt)";
         buzzerCard.className = "stat-card buzzer-card status-active";
     } else {
@@ -192,10 +193,10 @@ function updateDashboardUI(data) {
     updateStatusPill('diag-dht', dht === 1);
     updateStatusPill('diag-lcd', lcd === 1);
     updateStatusPill('diag-rgb', rgb === 1);
-    updateStatusPill('diag-buzzer', buzzer === 1, true); // buzzer active = warning/red
+    updateStatusPill('diag-buzzer', buzzer === 1, false, "OK");
 }
 
-function updateStatusPill(elementId, isOk, activeAsWarning = false) {
+function updateStatusPill(elementId, isOk, activeAsWarning = false, okText = "OK") {
     const el = document.getElementById(elementId);
     if (!el) return;
 
@@ -209,7 +210,7 @@ function updateStatusPill(elementId, isOk, activeAsWarning = false) {
         }
     } else {
         if (isOk) {
-            el.innerText = "OK";
+            el.innerText = okText;
             el.className = "diag-status status-pill-success";
         } else {
             el.innerText = "LỖI";
@@ -222,7 +223,7 @@ function updateStatusPill(elementId, isOk, activeAsWarning = false) {
 function connectWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}`;
-    
+
     const connStatus = document.getElementById('conn-status');
     const connText = document.getElementById('conn-text');
 
@@ -236,7 +237,7 @@ function connectWebSocket() {
 
     socket.onmessage = (event) => {
         const message = JSON.parse(event.data);
-        
+
         if (message.type === 'HISTORY') {
             // Nhận dữ liệu lịch sử khi vừa tải trang
             const history = message.data;
@@ -248,11 +249,11 @@ function connectWebSocket() {
             if (history.length > 0) {
                 updateDashboardUI(history[history.length - 1]);
             }
-        } 
+        }
         else if (message.type === 'NEW_DATA') {
             // Nhận dữ liệu mới thời gian thực
             const dataPoint = message.data;
-            
+
             // Thêm vào biểu đồ
             chart.data.labels.push(dataPoint.timestamp);
             chart.data.datasets[0].data.push(dataPoint.temp);
@@ -264,7 +265,7 @@ function connectWebSocket() {
                 chart.data.datasets[0].data.shift();
                 chart.data.datasets[1].data.shift();
             }
-            
+
             chart.update();
             updateDashboardUI(dataPoint);
         }

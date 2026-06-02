@@ -1,8 +1,8 @@
 {
   "PORT": 3000,
   "MAX_HISTORY_LEN": 100,
-  "MQTT_BROKER": "mqtt://broker.hivemq.com",
-  "MQTT_USERNAME": "",
-  "MQTT_PASSWORD": "",
-  "MQTT_TOPIC": "embedded_iot/temp_sensor/8c377539"
+  "MQTT_BROKER": "mqtts://a4e09e11da3946148c48fb757ee3b8f5.s1.eu.hivemq.cloud:8883",
+  "MQTT_USERNAME": "hivemq.webclient.1776624757608",
+  "MQTT_PASSWORD": "3n9<ITaLk,z&oE7j?B2H",
+  "MQTT_TOPIC": "device/esp32_01/sensor"
 }
