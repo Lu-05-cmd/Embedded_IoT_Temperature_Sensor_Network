@@ -126,12 +126,28 @@
         <div class="main-section">
             <!-- Chart Container -->
             <div class="chart-container-card">
-                <div class="card-header">
-                    <h3>Biến thiên Nhiệt độ và Độ ẩm</h3>
-                    <p class="chart-subtitle">Tự động cập nhật sau mỗi 1 giây</p>
+                <div class="card-header chart-header-layout">
+                    <div>
+                        <h3>Biến thiên Nhiệt độ và Độ ẩm</h3>
+                        <p class="chart-subtitle">Tự động cập nhật sau mỗi 1 giây</p>
+                    </div>
+                    <div class="chart-mode-container">
+                        <select id="chart-mode-select" class="chart-select">
+                            <option value="merged">Gộp chung biểu đồ</option>
+                            <option value="split">Tách riêng biểu đồ</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="chart-wrapper">
+                <div class="chart-wrapper" id="merged-chart-wrapper">
                     <canvas id="liveChart"></canvas>
+                </div>
+                <div class="split-chart-wrapper" id="split-chart-wrapper" style="display: none;">
+                    <div class="split-chart-item">
+                        <canvas id="tempChart"></canvas>
+                    </div>
+                    <div class="split-chart-item">
+                        <canvas id="humiChart"></canvas>
+                    </div>
                 </div>
             </div>
 

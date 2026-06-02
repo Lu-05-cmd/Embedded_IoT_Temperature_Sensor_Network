@@ -1,6 +1,11 @@
 // Custom Dashboard Application Logic
 let chart;
+let tempChart;
+let humiChart;
+let chartHistoryData = [];
+let currentChartMode = 'merged';
 let socket;
+const MAX_CHART_POINTS = 25;
 
 const TEMP_WARNING_C = 32;
 const TEMP_DANGER_C = 38;
@@ -98,24 +103,41 @@ function getChartValue(data, field) {
 }
 
 function renderChartHistory(history) {
-    chart.data.labels = history.map(d => d.timestamp);
-    chart.data.datasets[0].data = history.map(d => getChartValue(d, 'temp'));
-    chart.data.datasets[1].data = history.map(d => getChartValue(d, 'humi'));
-    chart.update();
+    chartHistoryData = history.slice(-MAX_CHART_POINTS);
+    updateCharts();
 }
 
 function appendChartPoint(dataPoint) {
-    chart.data.labels.push(dataPoint.timestamp);
-    chart.data.datasets[0].data.push(getChartValue(dataPoint, 'temp'));
-    chart.data.datasets[1].data.push(getChartValue(dataPoint, 'humi'));
+    chartHistoryData.push(dataPoint);
+    if (chartHistoryData.length > MAX_CHART_POINTS) {
+        chartHistoryData.shift();
+    }
+    updateCharts();
+}
 
-    if (chart.data.labels.length > 50) {
-        chart.data.labels.shift();
-        chart.data.datasets[0].data.shift();
-        chart.data.datasets[1].data.shift();
+function updateCharts() {
+    const labels = chartHistoryData.map(d => d.timestamp);
+    const tempData = chartHistoryData.map(d => getChartValue(d, 'temp'));
+    const humiData = chartHistoryData.map(d => getChartValue(d, 'humi'));
+
+    if (chart) {
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = tempData;
+        chart.data.datasets[1].data = humiData;
+        chart.update('none');
     }
 
-    chart.update();
+    if (tempChart) {
+        tempChart.data.labels = labels;
+        tempChart.data.datasets[0].data = tempData;
+        tempChart.update('none');
+    }
+
+    if (humiChart) {
+        humiChart.data.labels = labels;
+        humiChart.data.datasets[0].data = humiData;
+        humiChart.update('none');
+    }
 }
 
 // Khởi tạo đồ thị Chart.js
@@ -145,8 +167,8 @@ function initChart() {
                     borderWidth: 3,
                     fill: true,
                     tension: 0.4,
-                    pointRadius: 3,
-                    pointHoverRadius: 6,
+                    pointRadius: 2,
+                    pointHoverRadius: 5,
                     yAxisID: 'y-temp',
                     spanGaps: true
                 },
@@ -158,8 +180,8 @@ function initChart() {
                     borderWidth: 3,
                     fill: true,
                     tension: 0.4,
-                    pointRadius: 3,
-                    pointHoverRadius: 6,
+                    pointRadius: 2,
+                    pointHoverRadius: 5,
                     yAxisID: 'y-humi',
                     spanGaps: true
                 }
@@ -170,8 +192,8 @@ function initChart() {
             maintainAspectRatio: false,
             layout: {
                 padding: {
-                    left: 15,
-                    right: 15,
+                    left: 30,
+                    right: 30,
                     top: 0,
                     bottom: 0
                 }
@@ -260,6 +282,194 @@ function initChart() {
                             family: 'Plus Jakarta Sans',
                             weight: '600'
                         },
+                        callback: function (value) { return value + ' %'; }
+                    }
+                }
+            }
+        }
+    });
+
+    const modeSelect = document.getElementById('chart-mode-select');
+    if (modeSelect) {
+        modeSelect.addEventListener('change', (e) => {
+            setChartMode(e.target.value);
+        });
+    }
+}
+
+function setChartMode(mode) {
+    currentChartMode = mode;
+    const mergedWrapper = document.getElementById('merged-chart-wrapper');
+    const splitWrapper = document.getElementById('split-chart-wrapper');
+
+    if (mode === 'split') {
+        mergedWrapper.style.display = 'none';
+        splitWrapper.style.display = 'grid';
+        if (!tempChart) {
+            initTempChart();
+        }
+        if (!humiChart) {
+            initHumiChart();
+        }
+    } else {
+        mergedWrapper.style.display = 'block';
+        splitWrapper.style.display = 'none';
+    }
+    updateCharts();
+}
+
+function initTempChart() {
+    const ctx = document.getElementById('tempChart').getContext('2d');
+    const tempGradient = ctx.createLinearGradient(0, 0, 0, 200);
+    tempGradient.addColorStop(0, 'rgba(37, 99, 235, 0.2)');
+    tempGradient.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
+
+    tempChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Nhiệt độ (°C)',
+                    data: [],
+                    borderColor: '#2563eb',
+                    backgroundColor: tempGradient,
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 2,
+                    pointHoverRadius: 5,
+                    spanGaps: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: { left: 30, right: 30, top: 0, bottom: 0 }
+            },
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: '#64748b',
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        boxWidth: 8,
+                        boxHeight: 8,
+                        font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#ffffff',
+                    titleColor: '#0f172a',
+                    bodyColor: '#334155',
+                    borderColor: 'rgba(148, 163, 184, 0.2)',
+                    borderWidth: 1,
+                    padding: 10,
+                    titleFont: { family: 'Plus Jakarta Sans', weight: '700' },
+                    bodyFont: { family: 'Plus Jakarta Sans' }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(148, 163, 184, 0.05)' },
+                    ticks: { color: '#64748b', font: { family: 'Plus Jakarta Sans' } }
+                },
+                y: {
+                    type: 'linear',
+                    min: 0,
+                    max: 80,
+                    grid: { color: 'rgba(148, 163, 184, 0.05)' },
+                    ticks: {
+                        color: '#2563eb',
+                        font: { family: 'Plus Jakarta Sans', weight: '600' },
+                        callback: function (value) { return value + ' °C'; }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function initHumiChart() {
+    const ctx = document.getElementById('humiChart').getContext('2d');
+    const humiGradient = ctx.createLinearGradient(0, 0, 0, 200);
+    humiGradient.addColorStop(0, 'rgba(14, 165, 233, 0.2)');
+    humiGradient.addColorStop(1, 'rgba(14, 165, 233, 0.0)');
+
+    humiChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Độ ẩm (%)',
+                    data: [],
+                    borderColor: '#0ea5e9',
+                    backgroundColor: humiGradient,
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 2,
+                    pointHoverRadius: 5,
+                    spanGaps: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: { left: 30, right: 30, top: 0, bottom: 0 }
+            },
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: '#64748b',
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        boxWidth: 8,
+                        boxHeight: 8,
+                        font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#ffffff',
+                    titleColor: '#0f172a',
+                    bodyColor: '#334155',
+                    borderColor: 'rgba(148, 163, 184, 0.2)',
+                    borderWidth: 1,
+                    padding: 10,
+                    titleFont: { family: 'Plus Jakarta Sans', weight: '700' },
+                    bodyFont: { family: 'Plus Jakarta Sans' }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(148, 163, 184, 0.05)' },
+                    ticks: { color: '#64748b', font: { family: 'Plus Jakarta Sans' } }
+                },
+                y: {
+                    type: 'linear',
+                    min: 0,
+                    max: 100,
+                    grid: { color: 'rgba(148, 163, 184, 0.05)' },
+                    ticks: {
+                        color: '#0ea5e9',
+                        font: { family: 'Plus Jakarta Sans', weight: '600' },
                         callback: function (value) { return value + ' %'; }
                     }
                 }

@@ -93,6 +93,7 @@ body {
     letter-spacing: -0.5px;
     background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -426,4 +427,66 @@ body {
     background: rgba(245, 158, 11, 0.1);
     color: var(--status-warning);
     border: 1px solid rgba(245, 158, 11, 0.18);
+}
+
+/* Styled select and layout for split charts */
+.chart-header-layout {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.chart-select {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.03);
+    transition: all 0.2s ease;
+}
+
+.chart-select:hover {
+    border-color: rgba(37, 99, 235, 0.4);
+    box-shadow: 0 4px 12px -1px rgba(37, 99, 235, 0.08);
+}
+
+.chart-select:focus {
+    border-color: var(--primary-temp);
+}
+
+.split-chart-wrapper {
+    width: 100%;
+    height: 380px;
+    display: none;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+}
+
+.split-chart-item {
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    border-radius: 12px;
+    padding: 0.75rem;
+    height: 100%;
+    position: relative;
+}
+
+@media (max-width: 768px) {
+    .split-chart-wrapper {
+        grid-template-columns: 1fr;
+        height: auto;
+        gap: 1.5rem;
+    }
+    
+    .split-chart-item {
+        height: 250px;
+    }
 }
