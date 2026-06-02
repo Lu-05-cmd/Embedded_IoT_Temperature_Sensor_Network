@@ -5,6 +5,7 @@ let humiChart;
 let chartHistoryData = [];
 let currentChartMode = 'merged';
 let socket;
+let latestTelemetryData = null;
 const MAX_CHART_POINTS = 25;
 
 let voiceAlertEnabled = localStorage.getItem('voiceAlertEnabled') === 'true';
@@ -484,6 +485,7 @@ function initHumiChart() {
 
 // Cập nhật các thẻ giá trị trên Dashboard
 function updateDashboardUI(data) {
+    latestTelemetryData = data;
     const { temp, humi, dht, lcd, rgb, buzzer } = data;
     const envStatusInfo = getEnvStatusInfo(data);
     const envStatus = envStatusInfo.key;
@@ -552,7 +554,7 @@ function updateDashboardUI(data) {
             } else if (envStatus === 'danger') {
                 const isTempDanger = temp !== undefined && Number(temp) >= TEMP_DANGER_C;
                 const isHumiDanger = humi !== undefined && Number(humi) >= HUMI_DANGER_PERCENT;
-                
+
                 if (isTempDanger && isHumiDanger) {
                     alertText = `Cảnh báo nguy hiểm! Nhiệt độ ${temp} độ C và độ ẩm ${humi} phần trăm đều vượt ngưỡng nguy hiểm!`;
                 } else if (isTempDanger) {
@@ -563,7 +565,7 @@ function updateDashboardUI(data) {
             } else if (envStatus === 'warning') {
                 const isTempWarning = temp !== undefined && Number(temp) >= TEMP_WARNING_C;
                 const isHumiWarning = humi !== undefined && Number(humi) >= HUMI_WARNING_PERCENT;
-                
+
                 if (isTempWarning && isHumiWarning) {
                     alertText = `Cảnh báo! Nhiệt độ ${temp} độ C và độ ẩm ${humi} phần trăm đang ở mức cảnh báo!`;
                 } else if (isTempWarning) {
@@ -679,26 +681,39 @@ async function loadInitialHistory() {
     }
 }
 
-function speakText(text) {
-    if (typeof responsiveVoice !== 'undefined') {
-        try {
-            responsiveVoice.cancel();
-            responsiveVoice.speak(text, "Vietnamese Female", { rate: 1.0, pitch: 1.0 });
-        } catch (e) {
-            console.error("Lỗi ResponsiveVoice:", e);
-        }
-    } else if ('speechSynthesis' in window) {
-        // Fallback sang native Web Speech API phòng hờ mất mạng
+function speakNativeSpeech(text) {
+    if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         const voices = window.speechSynthesis.getVoices();
         const viVoice = voices.find(v => v.lang.toLowerCase().replace('_', '-').includes('vi-vn')) ||
-                        voices.find(v => v.lang.toLowerCase().includes('vi'));
+            voices.find(v => v.lang.toLowerCase().includes('vi'));
         if (viVoice) {
             utterance.voice = viVoice;
         }
         utterance.lang = 'vi-VN';
         window.speechSynthesis.speak(utterance);
+    }
+}
+
+function speakText(text) {
+    if (typeof responsiveVoice !== 'undefined') {
+        try {
+            responsiveVoice.cancel();
+            responsiveVoice.speak(text, "Vietnamese Female", {
+                rate: 1.0,
+                pitch: 1.0,
+                onerror: function (e) {
+                    console.warn("ResponsiveVoice bị lỗi, chuyển hướng sang Web Speech API...", e);
+                    speakNativeSpeech(text);
+                }
+            });
+        } catch (e) {
+            console.error("Lỗi gọi ResponsiveVoice:", e);
+            speakNativeSpeech(text);
+        }
+    } else {
+        speakNativeSpeech(text);
     }
 }
 
@@ -715,6 +730,22 @@ window.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('voiceAlertEnabled', voiceAlertEnabled);
             if (voiceAlertEnabled) {
                 speakText("Đã bật đọc cảnh báo bằng giọng nói.");
+            }
+        });
+    }
+
+    const speakBtn = document.getElementById('speak-current-btn');
+    if (speakBtn) {
+        speakBtn.addEventListener('click', () => {
+            if (latestTelemetryData) {
+                const { temp, humi, dht } = latestTelemetryData;
+                if (dht !== 1) {
+                    speakText("Cảnh báo lỗi! Cảm biến lỗi hoặc mất kết nối!");
+                } else {
+                    speakText(`Nhiệt độ hiện tại là ${temp} độ C, độ ẩm là ${humi} phần trăm.`);
+                }
+            } else {
+                speakText("Chưa có dữ liệu mới từ cảm biến.");
             }
         });
     }
