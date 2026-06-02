@@ -147,7 +147,8 @@ function initChart() {
                     tension: 0.4,
                     pointRadius: 3,
                     pointHoverRadius: 6,
-                    yAxisID: 'y-temp'
+                    yAxisID: 'y-temp',
+                    spanGaps: true
                 },
                 {
                     label: 'Độ ẩm (%)',
@@ -159,7 +160,8 @@ function initChart() {
                     tension: 0.4,
                     pointRadius: 3,
                     pointHoverRadius: 6,
-                    yAxisID: 'y-humi'
+                    yAxisID: 'y-humi',
+                    spanGaps: true
                 }
             ]
         },
@@ -184,6 +186,10 @@ function initChart() {
                     position: 'top',
                     labels: {
                         color: '#64748b',
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        boxWidth: 8,
+                        boxHeight: 8,
                         font: {
                             family: 'Plus Jakarta Sans',
                             size: 12,
